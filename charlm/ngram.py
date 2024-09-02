@@ -12,11 +12,11 @@ class ngram:
                 ngrams_counts[ngram] = 1
         return ngrams_counts
 
-    def __ngram_list_updated(self, list_object, n, include_intermediate_ns = True):
+    def __ngram_list_updated(self, words_list, include_intermediate_ns = True):
         ngrams = []
-        iterator = range(2, n+1) if include_intermediate_ns else [n]
+        iterator = range(2, self.size+1) if include_intermediate_ns else [self.size]
         for n_of_grams in iterator:
-            for element in list_object:
+            for element in words_list:
                 element = ["<>"] + list(element) + ["<>"]
                 if len(element)>=(n_of_grams-2):
                     for idx in range(len(element) - n_of_grams + 1):
@@ -36,38 +36,47 @@ class ngram:
         self.next_char = next_char
         self.estimated_probabilitites = probabilities
 
-    def __generate_word(self, previous_chars, next_char, probabilities, n):
+    def fit(self, X):
+        self.__ngram_list_updated(X, self.size)
+        self.__calculate_probabilities(self.ngrams_count, self.smoothing_factor)
+
+    def generate_word(self):
         first_char = str(np.random.choice(nexts, size=1, replace=True, p=probabilities[firsts.index("<>")])[0])
         word = first_char
         while True:
-            prev_ngram = word[-(n-1):] if len(word)>=(n-1) else '<>'+word
+            prev_ngram = word[-(self.size-1):] if len(word)>=(self.size-1) else '<>'+word
             next_char = str(np.random.choice(nexts, size=1, replace=True, p=probabilities[firsts.index(prev_ngram)])[0])
             if next_char == "<>":
                 break
             word += next_char
         return word
 
-    def __generate_words(self, number_of_words, previous_chars, next_char, probabilities, n):
+    def generate_words(self, number_of_words):
         words = []
         for i in range(number_of_words):
-            words.append(self.__generate_word(previous_chars, next_char, probabilities, n))
+            words.append(self.__generate_word(self.previous_chars, 
+                                              self.next_char, 
+                                              self.estimated_probabilitites, 
+                                              self.size))
         return words
 
-    def __calculate_perplexity_of_word(word, previous_chars, next_char, probabilities, n):
+    def calculate_perplexity_of_word(self, word):
         word = ["<>"] + list(word) + ["<>"]
         predictor_grams = []
         for idx_char, char in enumerate(word[:-1]):
-            predictor_grams.append("".join(word[max(0, idx_char - (n-1) + 1):idx_char+1]))
+            predictor_grams.append("".join(word[max(0, idx_char - (self.size-1) + 1):idx_char+1]))
         perplexity = 1
         for predictor, test in zip(predictor_grams, word[1:]):
             try:
-                probability = float(probabilities[previous_chars.index(predictor)][next_char.index(test)])
+                probability = float(self.probabilities[self.previous_chars.index(predictor)][self.next_char.index(test)])
                 probability = probability if probability>0 else 0.001
             except:
                 probability = 1
             perplexity *= (probability)**(-1/len(predictor_grams))
         return perplexity
 
-    def fit(self, X):
-        self.__ngram_list_updated(X, self.size)
-        self.__calculate_probabilities(self.ngrams_count, self.smoothing_factor)
+    def calculate_mean_perplexity(self, words_list):
+        perplexities = []
+        for element in test_list:
+            perplexities.append(self.calculate_perplexity_of_word(element))
+        return sum(perplexities)/len(perplexities)

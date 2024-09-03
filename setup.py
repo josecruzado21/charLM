@@ -14,6 +14,6 @@ classifiers=[
 ],
 python_requires='>=3.6',
 install_requires=[
-    "numpy=2.1.0"
+    "numpy==2.1.0"
 ],
 )

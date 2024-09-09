@@ -113,7 +113,7 @@ class CharNGram:
         probabilities = probabilities / probabilities.sum(axis=1, keepdims=True)
         self.previous_chars = previous_chars
         self.next_char = next_char
-        self.estimated_probabilitites = probabilities
+        self.estimated_probabilities = probabilities
 
     def fit(self, X):
         """
@@ -153,7 +153,7 @@ class CharNGram:
         first_char = str(np.random.choice(self.next_char, 
                                           size=1, 
                                           replace=True, 
-                                          p=self.estimated_probabilitites[self.previous_chars.index("<>")])[0])
+                                          p=self.estimated_probabilities[self.previous_chars.index("<>")])[0])
         word = first_char
         while True:
             # The previous ngram is generated to contain all the letters of the word including the "<>" character
@@ -161,7 +161,7 @@ class CharNGram:
             prev_ngram = word[-(self.size-1):] if len(word)>=(self.size-1) else '<>'+word
             # The next char is obtaining drawing a character from the distribution of characters conditioned
             # on the occurence of prev_ngram
-            next_char = str(np.random.choice(self.next_char, size=1, replace=True, p=self.estimated_probabilitites[
+            next_char = str(np.random.choice(self.next_char, size=1, replace=True, p=self.estimated_probabilities[
                 self.previous_chars.index(prev_ngram)])[0])
             # If the next_char is "<>" it means that the word ends
             if next_char == "<>":
@@ -213,7 +213,7 @@ class CharNGram:
         perplexity = 1
         for predictor, test in zip(predictor_grams, word[1:]):
             try:
-                probability = float(self.estimated_probabilitites[self.previous_chars.index(predictor)][self.next_char.index(test)])
+                probability = float(self.estimated_probabilities[self.previous_chars.index(predictor)][self.next_char.index(test)])
                 # The transition probability is converted to min_probability if it was originally 0
                 probability = probability if probability>0 else min_probability
             except:

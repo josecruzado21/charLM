@@ -110,6 +110,7 @@ class CharNGram:
         for idx_prevs, prevs in enumerate(previous_chars):
             for idx_nexts, nexts in enumerate(next_char):
                 probabilities[(idx_prevs, idx_nexts)] = ngrams_frequencies.get((prevs, nexts), smoothing_factor)
+        self.frequencies_matrix = probabilities
         probabilities = probabilities / probabilities.sum(axis=1, keepdims=True)
         self.previous_chars = previous_chars
         self.next_char = next_char

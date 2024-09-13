@@ -43,3 +43,12 @@ print(f"\t\tLoss (train) n-gram neural LM: {train_loss:.5f}")
 print(f"\t\tLoss (test) n-gram neural LM: {test_loss:.5f}")
 print(f"\t\tMean perplexity of training set: {ngram_dog_names_nn.calculate_mean_perplexity(names_train):.2f}")
 print(f"\t\tMean perplexity of test set: {ngram_dog_names_nn.calculate_mean_perplexity(names_test):.2f}\n")
+
+print("\tPrediction:")
+words = ngram_dog_names_nn.generate_words(1000)
+with open("./data/output/generated_dog_names_nn.txt", "w") as f:
+    f.writelines(f"{word}\n" for word in words)
+
+print(f"\t\t% of generated names also found in training set: {(len((set(names_train).intersection(set(words))))/len(set(words)))*100:.2f}%")
+print(f"\t\t% of generated names also found in test set: {(len((set(names_test).intersection(set(words))))/len(set(words)))*100:.2f}%")
+print(f"\t\tExamples of generated names not found in training set: {list(set(words)-set(names_train))[0:7]}\n")

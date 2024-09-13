@@ -54,3 +54,7 @@ The outputs will be shown in the terminal
 - The generation of the first character of a word always follows the bi-gram transition probabilities given the appearance of the character '<>'.
 - As the size of the n-grams increases, the generated words are more likely to be found in the training set.
 - The overlap between the test set and the generated words does not show a clear dependency on the size of the n-gram.
+
+## Neural Networks
+- The negative log-likelihood and cross-entropy values obtained through gradient descent should converge to the loss values obtained from the n-gram model. Any discrepancy where the gradient descent loss is less than the n-gram model loss is likely due to the smoothing applied in the n-gram model, which adjusts for unseen n-grams.
+- Using cross-entropy and negative log-likelihood should yield consistent results. Both methods aim to minimize the same type of loss, so theoretically, the results should be equivalent, given the same data and model parameters.

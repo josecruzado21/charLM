@@ -354,10 +354,13 @@ class CharNGram:
         # to avoid repeated linear searches in the probabilities matrix.
 
         # Step 1: Sample the first character based on the conditional distribution of characters following "<>"
-        first_char = str(np.random.choice(self.next_char, 
+        while True:
+            first_char = str(np.random.choice(self.next_char, 
                                           size=1, 
                                           replace=True, 
                                           p=self.estimated_probabilities[self.previous_chars.index("<>")])[0])
+            if first_char!="<>":
+                break
         word = [first_char]
 
         # Step 2: Iteratively generate the next characters until the special end character "<>" is selected
@@ -391,13 +394,13 @@ class CharNGram:
         """
         # Initialize the word generation process with the start token "<>"
         prev_ngram = "<>"
-        word = ""
+        word = []
 
         # Iteratively generate the next character until the end token "<>" is selected
         while True:
             # Construct the previous n-gram using the last (self.size - 1) characters of the word.
             # If the word length is smaller than the required n-gram size, prepend it with "<>".
-            prev_ngram = word[-(self.size-1):] if len(word)>=(self.size-1) else '<>'+word
+            prev_ngram = "".join(word[-(self.size-1):]) if len(word)>=(self.size-1) else '<>'+"".join(word)
 
             # Convert the n-gram into its corresponding index in the previous_chars list
             X_index = self.previous_chars.index(prev_ngram)
@@ -417,12 +420,13 @@ class CharNGram:
 
             # If the end token "<>" is sampled, terminate the generation loop
             next_char = self.next_char[next_char_idx]
-            if next_char == "<>":
-                break
+            if (next_char == "<>"):
+                if (prev_ngram != "<>"):
+                    break
             else:
                 # Append the sampled character to the word
-                word += next_char
-        return word
+                word.append(next_char)
+        return "".join(word)
 
     def generate_word(self):
         """
@@ -459,7 +463,7 @@ class CharNGram:
             words.append(self.generate_word())
         return words
 
-    def calculate_perplexity_of_word(self, word):
+    def __calculate_perplexity_of_word_ngram(self, word):
         """
         Calculate the perplexity of a given word based on the n-gram model.
 
@@ -485,16 +489,55 @@ class CharNGram:
         # Initialize perplexity as 1 (multiplicative measure)
         perplexity = 1
         for predictor, test in zip(predictor_grams, word[1:]):
-            try:
-                 # Retrieve the probability of the transition from the predictor to the test character
-                probability = float(self.estimated_probabilities[self.previous_chars.index(predictor)][self.next_char.index(test)])
-            except:
-                # If the probability is not found (indicating an unseen n-gram), use a default probability of 1
-                # This assumption can be adjusted based on the model's handling of unseen n-grams
-                probability = 1
+            probability = float(self.estimated_probabilities[self.previous_chars.index(predictor)][self.next_char.index(test)])
             # Update perplexity based on the inverse of the probability
             perplexity *= (probability)**(-1/len(predictor_grams))
         return perplexity
+
+    def __calculate_perplexity_of_word_nn(self, word):
+        """
+        Calculate the perplexity of a given word based on the neural network model.
+
+        Perplexity is a measure of how well the probability model predicts a sample. 
+        In this method, it is calculated as the exponentiation of the average negative log probability 
+        of each n-gram in the word.
+
+        Args:
+            word (str): The word for which to calculate perplexity.
+
+        Returns:
+            float: The perplexity of the word.
+        """
+        # Convert the word to a list and add special start and end characters
+        word = ["<>"] + list(word) + ["<>"]
+
+        # Generate the list of predictor n-grams used for predicting the next character
+        predictor_grams = []
+        for idx_char, char in enumerate(word[:-1]):
+            # Extract the preceding n-gram based on the current position in the word
+            predictor_grams.append("".join(word[max(0, idx_char - (self.size-1) + 1):idx_char+1]))
+
+        # Convert n-gram sequences to indices.
+        X_index = torch.tensor([self.previous_chars.index(i) for i in predictor_grams])
+        # One-hot encode the previous characters.
+        X = F.one_hot(X_index, num_classes = len(self.previous_chars)).float()
+        A = X @ self.weights
+        probabilities = (A.exp())/(A.exp().sum(axis=1, keepdims=True))
+        # Initialize perplexity as 1 (multiplicative measure)
+        perplexity = 1
+        for idx_predictor, test in enumerate(word[1:]):
+            probability = float(probabilities[idx_predictor][self.next_char.index(test)])
+            # Update perplexity based on the inverse of the probability
+            perplexity *= (probability)**(-1/len(predictor_grams))
+        return perplexity
+
+
+
+    def calculate_perplexity_of_word(self, word):
+        if self.estimation_method=="ngrams":
+            return self.__calculate_perplexity_of_word_ngram(word)
+        elif self.estimation_method=="nn":
+            return self.__calculate_perplexity_of_word_nn(word)
 
     def calculate_mean_perplexity(self, words_list):
         """

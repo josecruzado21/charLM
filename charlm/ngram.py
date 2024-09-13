@@ -358,13 +358,13 @@ class CharNGram:
                                           size=1, 
                                           replace=True, 
                                           p=self.estimated_probabilities[self.previous_chars.index("<>")])[0])
-        word = first_char
+        word = [first_char]
 
         # Step 2: Iteratively generate the next characters until the special end character "<>" is selected
         while True:
             # Determine the previous n-gram based on the last (self.size - 1) characters of the generated word.
             # If the word length is smaller than the required n-gram size, prepend it with the start token "<>".
-            prev_ngram = word[-(self.size-1):] if len(word)>=(self.size-1) else '<>'+word
+            prev_ngram = "".join(word[-(self.size-1):]) if len(word)>=(self.size-1) else '<>'+"".join(word)
 
             # Sample the next character based on the conditional distribution for the current n-gram.
             next_char = str(np.random.choice(self.next_char, size=1, replace=True, p=self.estimated_probabilities[
@@ -374,8 +374,8 @@ class CharNGram:
             if next_char == "<>":
                 break
             # Append the sampled character to the word
-            word += next_char
-        return word
+            word.append(next_char)
+        return "".join(word)
 
     def __generate_word_nn(self):
         """

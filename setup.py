@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
 name='charLM',
-version='0.1.2',
+version='0.1.4',
 author='Jose Cruzado',
 author_email='josecruzado2103@gmail.com',
 description='This package provides a simpleway to train language models at the character level.',
@@ -14,6 +14,8 @@ classifiers=[
 ],
 python_requires='>=3.6',
 install_requires=[
-    "numpy==2.1.0"
+    "numpy==2.1.0",
+    "torch==2.4.1",
+    "tqdm==4.66.5"
 ],
 )

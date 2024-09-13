@@ -20,6 +20,7 @@ loss_test = ngram_dog_names.loss["test"]
 print("\tMetrics:")
 print(f"\t\tLoss (train) n-gram LM: {loss_train:.5f}")
 print(f"\t\tLoss (test) n-gram LM: {loss_test:.5f}")
+print(f"\t\tMean perplexity of training set: {ngram_dog_names.calculate_mean_perplexity(names_train):.2f}")
 print(f"\t\tMean perplexity of test set: {ngram_dog_names.calculate_mean_perplexity(names_test):.2f}\n")
 
 print("\tPrediction:")
@@ -40,4 +41,5 @@ test_loss = ngram_dog_names_nn.loss["test"]
 print("\tMetrics:")
 print(f"\t\tLoss (train) n-gram neural LM: {train_loss:.5f}")
 print(f"\t\tLoss (test) n-gram neural LM: {test_loss:.5f}")
+print(f"\t\tMean perplexity of training set: {ngram_dog_names_nn.calculate_mean_perplexity(names_train):.2f}")
 print(f"\t\tMean perplexity of test set: {ngram_dog_names_nn.calculate_mean_perplexity(names_test):.2f}\n")

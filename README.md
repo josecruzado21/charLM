@@ -52,7 +52,8 @@ The outputs will be shown in the terminal
 - As the size of the n-gram increases, the perplexity on the training set decreases (indicating overfitting), while the perplexity on the test set does not follow a monotonic pattern.
 - The average length of the generated words does not differ significantly across different n-gram sizes.
 - The generation of the first character of a word always follows the bi-gram transition probabilities given the appearance of the character '<>'.
-- As the size of the n-grams increases, the generated words are more likely to be found in the training set.
+- As the size of the n-grams increases, the generated words are more likely to be found in the training set (this conclusion depends on the influence of the smoothing factor).
+- When the smoothing parameter is used, larger n-gram sizes can result in more random outputs. This occurs because as the n-gram size increases, the likelihood of encountering unseen n-grams in the training set also rises. The smoothing parameter assigns a nearly constant transition probability to these unseen n-grams, which can cause the next character prediction to become nearly random
 - The overlap between the test set and the generated words does not show a clear dependency on the size of the n-gram.
 
 ## Neural Networks

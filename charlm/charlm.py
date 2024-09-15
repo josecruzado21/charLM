@@ -99,7 +99,7 @@ class CharLM:
             raise ValueError("Only softmax activation function is supported for the output layer")
         self.activations = activations
         # Initializing character embeddings as trainable parameters
-        embeddings = torch.randn((len(self.char_universe), 
+        embeddings = torch.rand((len(self.char_universe), 
                                  size_of_embeddings), requires_grad = True, dtype=torch.float)
         
         # Initialize the weights and biases for each layer in the MLP
@@ -109,8 +109,8 @@ class CharLM:
         # The input layer's size is determined by the context length and embedding size
         neurons_per_layer = [X_train.shape[1]*size_of_embeddings] + neurons_per_layer
         for previous_neurons, current_neurons in zip(neurons_per_layer, neurons_per_layer[1:]):
-            weights.append(torch.randn((previous_neurons, current_neurons), requires_grad=True, dtype=torch.float))
-            biases.append(torch.randn(current_neurons, requires_grad=True, dtype=torch.float))
+            weights.append(torch.rand((previous_neurons, current_neurons), requires_grad=True, dtype=torch.float))
+            biases.append(torch.rand(current_neurons, requires_grad=True, dtype=torch.float))
 
         batch_loss_evolution = [] # Track loss over batches for analysis
         for _ in tqdm(range(epochs)): # Loop over the number of epochs

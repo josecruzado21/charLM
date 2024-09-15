@@ -30,7 +30,7 @@ I encourage the reader to create their own dataset following the same format (a 
 
 ## n-grams
 
-To execute the n-gram demo, execute the following command: `python demo/ngrams_dog_names.py`
+To execute the n-gram demo, execute the following command: `python demo/ngrams_demo.py`
 
 The outputs will be shown in the terminal
 
@@ -43,7 +43,17 @@ The outputs will be shown in the terminal
 - charLM includes functionality to calculate the perplexity of each word and the mean perplexity of the dataset.
 - Even though Andrej's approach may be more efficient (using dictionaries that map items to indices and vice versa), charLM relies on a linear search to find the indices of interest in the probabilities matrix.
 - Andrej uses "." as special character while charLM uses "<>".
-- Andrej uses negative log-likelihood as measure of goodness of fit of the model, charLM uses perplexity.
+- Andrej uses negative log-likelihood as measure of goodness of fit of the model, charLM includes also perplexity.
+
+## Neural Networks
+- charLM includes functionalities to extend the neural networks to n-grams greater than 2.
+- charLM inclides functionality to calculate the mean perplexity of any given dataset.
+- charLM allows to change the cost function from log-likelihood to cross_entropy.
+
+## MLP
+- charLM includes supports the addition of more layers and activations to the MLP.
+- charLM includes a functionality to create words starting from some given context.
+- charLM includes random uniform initialization instead of random normal.
 
 # Learnings
 
@@ -59,3 +69,10 @@ The outputs will be shown in the terminal
 ## Neural Networks
 - The negative log-likelihood and cross-entropy values obtained through gradient descent should converge to the loss values obtained from the n-gram model. Any discrepancy where the gradient descent loss is less than the n-gram model loss is likely due to the smoothing applied in the n-gram model, which adjusts for unseen n-grams.
 - Using cross-entropy and negative log-likelihood should yield consistent results. Both methods aim to minimize the same type of loss, so theoretically, the results should be equivalent, given the same data and model parameters.
+
+## MLP
+- In this implementation, we no longer use n-grams as discrete strings; instead, we use a continuous representation of characters. 
+- The minimal unit is now the character itself (and not the n-gram), and we append as many characters as we wish to use as predictors. As a result, the input matrix grows to the left (in columns) rather than downward (in rows), as it did in the case of n-grams. This is because a string is now represented as a chain of embedding vectors (more columns) rather than as a new row.
+- Apparently, as the size of ngrams grow, the predictability increases.
+- Mini-batches help expedite the training process with results that converge to those of batch training.
+- The cross_entropy loss is calculated using the logits, while the log-likelihood is calculated using the estimated probabilities. In practice, cross_entropy is more efficient and well behaved, so the softmax layer is only used for prediction.

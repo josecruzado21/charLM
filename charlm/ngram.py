@@ -531,9 +531,20 @@ class CharNGram:
             perplexity *= (probability)**(-1/len(predictor_grams))
         return perplexity
 
-
-
     def calculate_perplexity_of_word(self, word):
+        """
+        Calculate the perplexity of a given word.
+
+        Perplexity is a measure of how well the probability model predicts a sample. 
+        In this method, it is calculated as the exponentiation of the average negative log probability 
+        of each n-gram in the word.
+
+        Args:
+            word (str): The word for which to calculate perplexity.
+
+        Returns:
+            float: The perplexity of the word.
+        """
         if self.estimation_method=="ngrams":
             return self.__calculate_perplexity_of_word_ngram(word)
         elif self.estimation_method=="nn":

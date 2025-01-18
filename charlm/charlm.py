@@ -80,6 +80,27 @@ class CharLM:
                                       weights_biases_dbn="normal",
                                       zero_out_weights=False,
                                       zero_out_biases=False):
+        """
+        Initializes weights and biases for a multi-layer perceptron (MLP) network.
+
+        Args:
+            neurons_per_layer (list of int): List specifying the number of neurons in each layer, including input and output layers.
+            initialization (str, optional): Weight initialization strategy. Options:
+                - "random": No scaling factor applied
+                - "he": He initialization scaling factor applied
+                Defaults to "random".
+            weights_biases_dbn (str, optional): Distribution type for weights and biases. Options:
+                - "normal": Normal distribution
+                - "uniform": Uniform distribution
+                Defaults to "normal".
+            zero_out_weights (bool, optional): If True, sets all weights to zero. Defaults to False.
+            zero_out_biases (bool, optional): If True, sets all biases to zero. Defaults to False.
+
+        Returns:
+            tuple: A tuple containing:
+                - weights (list of torch.Tensor): List of weight matrices for each layer
+                - biases (list of torch.Tensor): List of bias vectors for each layer
+        """
         # Initialize the weights and biases for each layer in the MLP
         weights = []
         biases = []
@@ -131,8 +152,20 @@ class CharLM:
             size_of_embeddings (int): Dimensionality of the character embeddings.
             epochs (int): Number of training epochs.
             learning_rate (float): Learning rate for gradient-based optimization.
-            batch_size (float, optional): Percentage of the training set used in each batch (default is 1, meaning full batch). If a value
-                                                    is provided, the batch size will be the number of samples in the training set times this value.
+            initialization (str, optional): Weight initialization strategy. Options:
+                - "random": No scaling factor applied
+                - "he": He initialization scaling factor applied
+                Defaults to "random".
+            weights_biases_dbn (str, optional): Distribution type for weights and biases. Options:
+                - "normal": Normal distribution
+                - "uniform": Uniform distribution
+                Defaults to "normal".
+            zero_out_weights (bool, optional): If True, sets all weights to zero. Defaults to False.
+            zero_out_biases (bool, optional): If True, sets all biases to zero. Defaults to False.
+            batch_size (float or int, optional): Size of each training batch. Interpreted differently based on value:
+                - If [0, 1]: Treated as a fraction of the training set size
+                - If > 1: Treated as the actual batch size in number of samples
+                Defaults to 1 (full batch).
 
         Returns:
             None: The method updates the model's parameters in place
@@ -159,11 +192,12 @@ class CharLM:
         self.initial_biases = [element.clone().detach() for element in biases]
         parameters = [embeddings] + weights + biases
         batch_losses = [] # Track loss over batches for analysis
-        if batch_size <= 1:
+        if 0 < batch_size <= 1:
             batch_size = int(X_train.shape[0]*batch_size) 
+        elif batch_size > 1:
+            batch_size = min(int(batch_size), X_train.shape[0])
 
         for _ in tqdm(range(epochs)): # Loop over the number of epochs
-
             # Gradient descent step: Update weights, biases, and embeddings
             # The update is done at the beginning of the epoch so the weights and biases saved are the ones
             # that were used to compute the final loss.

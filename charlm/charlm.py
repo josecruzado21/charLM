@@ -110,7 +110,8 @@ class CharLM:
             if initialization == "random":
                 normalization_factor = 1
             elif initialization == "he":
-                normalization_factor = 5/3*(1/fan_in)**0.5
+                normalization_factor = (2/fan_in)**0.5 # The factor 2/fan_in is used to scale the weights to match the variance of the input data
+                # This is a common heuristic for He initialization (follows the original paper)
             
             # Initialize the weights and biases
             if weights_biases_dbn == "normal":  
@@ -205,9 +206,10 @@ class CharLM:
                 for param in parameters:
                     if param.grad is not None:
                         param -= learning_rate*(param.grad) # Update parameters using gradient descent
-            
+                        param.grad.zero_()
+
             # Randomly sample a batch of the training set
-            ix = torch.randperm(X_train.shape[0])[:int(X_train.shape[0]*batch_size)]
+            ix = torch.randperm(X_train.shape[0])[:batch_size]
             
             # Forward pass: Embedding lookup and feedforward through the MLP
             X = embeddings[X_train[ix]] # Get the embeddings for the input character sequences
@@ -227,11 +229,6 @@ class CharLM:
             # Compute the cross-entropy loss for the current batch
             loss = F.cross_entropy(logits, y_train[ix])
             batch_losses.append(loss.item())
-
-            # Backward pass: Clear gradients and perform backpropagation
-            for param in parameters:
-                if param.grad is not None:
-                    param.grad.zero_() # Reset gradients before backpropagation
             loss.backward() # Compute gradients
         
         # Store the training results in the object

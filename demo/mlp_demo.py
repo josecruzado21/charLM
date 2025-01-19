@@ -26,15 +26,20 @@ X_train, y_train, X_dev, y_dev, X_test, y_test = model.get_formatted_tensors(tra
                                                                             dev = words_dev,
                                                                             test = words_test)
 
-model.fit(X_train, y_train, 
-          neurons_per_layer = [100, len(model.char_universe)], 
+model.fit(X_train, 
+          y_train, 
+          neurons_per_layer = [100, len(model.char_to_idx.keys())], 
           activations = ["tanh", "softmax"], 
-          batch_size_percentage = 0.01,
-          size_of_embeddings = 40, 
-          epochs = 200000, 
-          learning_rate = 0.1)
+          size_of_embeddings = 2, 
+          epochs=10000,
+          learning_rate=0.1,
+          initialization="he",
+          weights_biases_dbn="normal",
+          zero_out_weights=False,
+          zero_out_biases=False,
+          batch_size=32)
 print("\tMetrics:")
-print(f"\t\tLoss (train) MLP LM: {model.final_training_loss:.5f}")
+print(f"\t\tLoss (train) MLP LM: {model.calculate_loss(X_train, y_train):.5f}")
 print(f"\t\tLoss (dev) n-gram LM: {model.calculate_loss(X_dev, y_dev):.5f}")
 print(f"\t\tLoss (test) n-gram LM: {model.calculate_loss(X_test, y_test):.5f}")
 

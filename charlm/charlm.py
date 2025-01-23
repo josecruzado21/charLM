@@ -110,15 +110,16 @@ class CharLM:
             if initialization == "random":
                 normalization_factor = 1
             elif initialization == "he":
+                zero_out_biases = True
                 gain = 2**0.5
                 normalization_factor = ((1/fan_in)**0.5)*gain # The factor 2/fan_in is used to scale the weights to match the variance of the input data
                 # This is a common heuristic for He initialization (follows the original paper)
             
             # Initialize the weights and biases
-            if weights_biases_dbn == "normal":  
+            if weights_biases_dbn == "normal":
                 initialized_weights = torch.randn(
                     (fan_in, fan_out), dtype=torch.float64)*normalization_factor*(1-zero_out_weights)
-                initialized_biases = torch.randn(fan_out, dtype=torch.float64)*(1-zero_out_weights)
+                initialized_biases = torch.randn(fan_out, dtype=torch.float64)*(1-zero_out_biases)
             elif weights_biases_dbn == "uniform":
                 initialized_weights = torch.rand(
                     (fan_in, fan_out), dtype=torch.float64)*normalization_factor*(1-zero_out_weights)
@@ -198,11 +199,13 @@ class CharLM:
         
         # Initialize the normalization parameters
         normalization_parameters = [torch.tensor([], requires_grad=True)]*len(neurons_per_layer) # This list will store the gamma and beta parameters for each layer
+        running_means_stds = [torch.tensor([], requires_grad=True)]*len(neurons_per_layer)
         for idx, layer in enumerate(normalize_layer):
             if layer:
                 normalization_parameters[idx] = torch.cat((torch.ones((1, neurons_per_layer[idx+1]), dtype=torch.float64),
                                                           torch.zeros((1, neurons_per_layer[idx+1]), dtype=torch.float64)),
                                                           dim=0).requires_grad_()
+                running_means_stds[idx] = torch.zeros((2, neurons_per_layer[idx+1]))
 
         self.initial_weights = [element.clone().detach() for element in weights]
         self.initial_biases = [element.clone().detach() for element in biases]
@@ -244,6 +247,8 @@ class CharLM:
                     beta = normalization_parameter[n_layer][1]
                     mean_batch = A.mean(dim=0, keepdim=True)
                     std_batch = A.std(dim=0, keepdim=True)
+                    running_means_stds[n_layer][0] = running_means_stds[n_layer][0]*(1-0.001) + running_means_stds[n_layer][0]*0.001
+                    running_means_stds[n_layer][1] = running_means_stds[n_layer][1]*(1-0.001) + running_means_stds[n_layer][1]*0.001
                     A = ((A - mean_batch)/std_batch)*gamma + beta
 
                 activation_function = getattr(A, activation)
@@ -259,6 +264,8 @@ class CharLM:
                         beta = normalization_parameters[n_layer][1]
                         mean_batch = A_activation.mean(dim=0, keepdim=True)
                         std_batch = A_activation.std(dim=0, keepdim=True)
+                        running_means_stds[n_layer][0] = running_means_stds[n_layer][0]*(1-0.001) + running_means_stds[n_layer][0]*0.001
+                        running_means_stds[n_layer][1] = running_means_stds[n_layer][1]*(1-0.001) + running_means_stds[n_layer][1]*0.001
                         A_activation = ((A_activation - mean_batch)/std_batch)*gamma + beta
 
                 input_to_next_layer = A_activation

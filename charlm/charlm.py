@@ -110,7 +110,8 @@ class CharLM:
             if initialization == "random":
                 normalization_factor = 1
             elif initialization == "he":
-                normalization_factor = (2/fan_in)**0.5 # The factor 2/fan_in is used to scale the weights to match the variance of the input data
+                gain = 2**0.5
+                normalization_factor = ((1/fan_in)**0.5)*gain # The factor 2/fan_in is used to scale the weights to match the variance of the input data
                 # This is a common heuristic for He initialization (follows the original paper)
             
             # Initialize the weights and biases
@@ -132,7 +133,8 @@ class CharLM:
             X_train, 
             y_train, 
             neurons_per_layer,
-            activations, 
+            activations,
+            normalize_layer,
             size_of_embeddings,
             epochs, 
             learning_rate,
@@ -140,7 +142,8 @@ class CharLM:
             weights_biases_dbn="normal",
             zero_out_weights=False,
             zero_out_biases=False,
-            batch_size=1):
+            batch_size=1,
+            normalize_pre_activation=True):
         """
         Trains the character-level language model using a multilayer perceptron (MLP) architecture.
 
@@ -171,6 +174,9 @@ class CharLM:
         Returns:
             None: The method updates the model's parameters in place
         """
+        if len(normalize_layer) != len(activations):
+            raise ValueError("The number of normalization layers must match the number of activations")
+        # Check that the last activation is softmax 
         if activations[-1]!="softmax":
             raise ValueError("Only softmax activation function is supported for the output layer")
         self.activations = activations
@@ -189,15 +195,24 @@ class CharLM:
                                                              weights_biases_dbn,
                                                              zero_out_weights,
                                                              zero_out_biases)
+        
+        # Initialize the normalization parameters
+        normalization_parameters = [torch.tensor([], requires_grad=True)]*len(neurons_per_layer) # This list will store the gamma and beta parameters for each layer
+        for idx, layer in enumerate(normalize_layer):
+            if layer:
+                normalization_parameters[idx] = torch.cat((torch.ones((1, neurons_per_layer[idx+1]), dtype=torch.float64),
+                                                          torch.zeros((1, neurons_per_layer[idx+1]), dtype=torch.float64)),
+                                                          dim=0).requires_grad_()
+
         self.initial_weights = [element.clone().detach() for element in weights]
         self.initial_biases = [element.clone().detach() for element in biases]
-        parameters = [embeddings] + weights + biases
+        parameters = [embeddings] + weights + biases + normalization_parameters
         batch_losses = [] # Track loss over batches for analysis
         if 0 < batch_size <= 1:
             batch_size = int(X_train.shape[0]*batch_size) 
         elif batch_size > 1:
             batch_size = min(int(batch_size), X_train.shape[0])
-
+        self.idxs = []
         for _ in tqdm(range(epochs)): # Loop over the number of epochs
             # Gradient descent step: Update weights, biases, and embeddings
             # The update is done at the beginning of the epoch so the weights and biases saved are the ones
@@ -210,19 +225,42 @@ class CharLM:
 
             # Randomly sample a batch of the training set
             ix = torch.randperm(X_train.shape[0])[:batch_size]
-            
+            self.idxs.append(ix)
             # Forward pass: Embedding lookup and feedforward through the MLP
             X = embeddings[X_train[ix]] # Get the embeddings for the input character sequences
             input_to_next_layer = X.view((X.shape[0], X.shape[1]*X.shape[2])) # Flatten input for the first layer
             
             # Feedforward through all layers
-            for weight, bias, activation in zip(weights, biases, activations):
+            for n_layer, (weight, bias, activation, normalization_parameter) in enumerate(zip(
+                                                                    weights, 
+                                                                    biases, 
+                                                                    activations, 
+                                                                    normalization_parameters)):
                 A = input_to_next_layer @ weight + bias
+                # Normalize before the activation function if indicated by normalize_pre_activation
+                # Done for all layers
+                if (normalize_layer[n_layer]) & (normalize_pre_activation):
+                    gamma = normalization_parameter[n_layer][0]
+                    beta = normalization_parameter[n_layer][1]
+                    mean_batch = A.mean(dim=0, keepdim=True)
+                    std_batch = A.std(dim=0, keepdim=True)
+                    A = ((A - mean_batch)/std_batch)*gamma + beta
+
                 activation_function = getattr(A, activation)
                 if activation == "softmax":
                     A_activation = activation_function(dim=1)
+                    print(A_activation)
                 else:
                     A_activation = activation_function()
+                    # Normalize after the activation function if indicated by normalize_pre_activation
+                    # Only done for layers different from the output layer
+                    if (normalize_layer[n_layer]) & (not normalize_pre_activation):
+                        gamma = normalization_parameters[n_layer][0]
+                        beta = normalization_parameters[n_layer][1]
+                        mean_batch = A_activation.mean(dim=0, keepdim=True)
+                        std_batch = A_activation.std(dim=0, keepdim=True)
+                        A_activation = ((A_activation - mean_batch)/std_batch)*gamma + beta
+
                 input_to_next_layer = A_activation
             
             logits = A # logits are the last linear combination (before the application of the softmax activation)
@@ -236,6 +274,7 @@ class CharLM:
         self.final_embeddings = embeddings
         self.final_weights = weights
         self.final_biases = biases
+        self.final_normalization_parameters = normalization_parameters
 
     def calculate_loss(self, X, y):
         """
